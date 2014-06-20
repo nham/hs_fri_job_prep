@@ -1,6 +1,6 @@
 #! /usr/bin/python
 
-import sys, sqlite3
+import sys, sqlite3, configparser
 
 db_name = "pbdb.sqlite"
 
@@ -151,7 +151,7 @@ class PhonebookManager:
 
 
 
-def execute_command(args):
+def exec_command(args, default_phonebook=None):
     if len(args) == 0:
         raise argParseException("No command specified.")
 
@@ -168,6 +168,19 @@ def execute_command(args):
             raise argParseException("Incorrect number of parameters for '{}', should be {}, but {} were given".format(cmd, num, num_params))
 
 
+    # with the default_phonebook option, we have to figure out whether or not to use it
+    # (we may be overriding the default by supplying an actual phonebook)
+    def create_params_list(cmd, num, params):
+        try:
+            check_num_params(cmd, num, params)
+            return params
+        except argParseException as e:
+            if default_phonebook is not None:
+                params_w_default = params + [default_phonebook]
+                check_num_params(cmd, num, params_w_default)
+                return params_w_default
+
+
     cmd = args[0] # the main command
     cmd_params = args[1:] # parameters to the command
 
@@ -179,39 +192,46 @@ def execute_command(args):
         pbm.create_phonebook(cmd_params[0])
 
     elif cmd == 'lookup':
-        check_num_params('lookup', 2, cmd_params)
-        pbm.lookup_name(cmd_params[0], cmd_params[1])
+        params = create_params_list('lookup', 2, cmd_params)
+        pbm.lookup_name(params[0], params[1])
 
     elif cmd == 'add':
-        check_num_params('add', 3, cmd_params)
-        pbm.add_entry(cmd_params[0], cmd_params[1], cmd_params[2])
+        params = create_params_list('add', 3, cmd_params)
+        pbm.add_entry(params[0], params[1], params[2])
 
     elif cmd == 'change':
-        check_num_params('change', 3, cmd_params)
-        pbm.change_entry(cmd_params[0], cmd_params[1], cmd_params[2])
+        params = create_params_list('change', 3, cmd_params)
+        pbm.change_entry(params[0], params[1], params[2])
 
     elif cmd == 'remove':
-        check_num_params('remove', 2, cmd_params)
-        pbm.remove_entry(cmd_params[0], cmd_params[1])
+        params = create_params_list('remove', 2, cmd_params)
+        pbm.remove_entry(params[0], params[1])
 
     elif cmd == 'reverse-lookup':
-        check_num_params('reverse-lookup', 2, cmd_params)
-        pbm.reverse_lookup(cmd_params[0], cmd_params[1])
+        params = create_params_list('reverse-lookup', 2, cmd_params)
+        pbm.reverse_lookup(params[0], params[1])
 
     else:
         # try defaulting to 'lookup' command before failing
         try:
-            check_num_params('lookup', 2, args)
+            params = create_params_list('lookup', 2, args)
         except Exception as e:
             raise argParseException("Invalid command.")
 
-        pbm.lookup_name(args[0], args[1])
+        pbm.lookup_name(params[0], params[1])
 
 
 
 if __name__ == "__main__":
     try:
-        execute_command(sys.argv[1:])
+        # check if there's a config file first
+        config = configparser.ConfigParser()
+        config.read("phbo.cfg")
+        if 'default_phonebook' in config['DEFAULT']:
+            exec_command(sys.argv[1:], default_phonebook=config['DEFAULT']['default_phonebook'])
+        else:
+            exec_command(sys.argv[1:])
+
     except phonebookException as e:
         print("Error: " + e.value)
     except Exception as e:
