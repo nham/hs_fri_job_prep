@@ -4,15 +4,15 @@ import sys, sqlite3, configparser
 
 db_name = "pbdb.sqlite"
 
-class phonebookException(Exception):
+class PhonebookException(Exception):
     def __init__(self, value):
         self.value = value
 
 
-class argParseException(phonebookException):
+class ArgParseException(PhonebookException):
     pass
 
-class commandException(phonebookException):
+class CommandException(PhonebookException):
     pass
 
 
@@ -63,7 +63,7 @@ class PhonebookManager:
 
     def create_phonebook(self, pb_name):
         if self.pb_exists(pb_name):
-            raise commandException("Cannot create phonebook '{}' because it already exists".format(pb_name))
+            raise CommandException("Cannot create phonebook '{}' because it already exists".format(pb_name))
 
         c = self.conn.cursor()
         sql = "INSERT INTO phonebooks (name) VALUES (?)"
@@ -74,7 +74,7 @@ class PhonebookManager:
     def lookup_name(self, name, pb_name):
         pbid = self.pb_exists(pb_name)
         if not pbid:
-            raise commandException("Phonebook '{}' does not exist".format(pb_name))
+            raise CommandException("Phonebook '{}' does not exist".format(pb_name))
 
         c = self.conn.cursor()
         sql = "SELECT name, number FROM pb_entries WHERE pbid = ? and name LIKE ?"
@@ -89,10 +89,10 @@ class PhonebookManager:
     def add_entry(self, name, number, pb_name):
         pbid = self.pb_exists(pb_name)
         if not pbid:
-            raise commandException("Phonebook '{}' does not exist".format(pb_name))
+            raise CommandException("Phonebook '{}' does not exist".format(pb_name))
 
         if self.name_in_list(name, pbid):
-            raise commandException("'{}' is already added to phonebook '{}'".format(name, pb_name))
+            raise CommandException("'{}' is already added to phonebook '{}'".format(name, pb_name))
 
 
         c = self.conn.cursor()
@@ -104,10 +104,10 @@ class PhonebookManager:
     def change_entry(self, name, number, pb_name):
         pbid = self.pb_exists(pb_name)
         if not pbid:
-            raise commandException("Phonebook '{}' does not exist".format(pb_name))
+            raise CommandException("Phonebook '{}' does not exist".format(pb_name))
 
         if not self.name_in_list(name, pbid):
-            raise commandException("'{}' isn't in phonebook '{}', so it cannot be changed.".format(name, pb_name))
+            raise CommandException("'{}' isn't in phonebook '{}', so it cannot be changed.".format(name, pb_name))
 
         c = self.conn.cursor()
         sql = "UPDATE pb_entries SET number = ? WHERE pbid=? and name=?"
@@ -119,10 +119,10 @@ class PhonebookManager:
     def remove_entry(self, name, pb_name):
         pbid = self.pb_exists(pb_name)
         if not pbid:
-            raise commandException("Phonebook '{}' does not exist".format(pb_name))
+            raise CommandException("Phonebook '{}' does not exist".format(pb_name))
 
         if not self.name_in_list(name, pbid):
-            raise commandException("'{}' isn't in phonebook '{}', so it cannot be removed.".format(name, pb_name))
+            raise CommandException("'{}' isn't in phonebook '{}', so it cannot be removed.".format(name, pb_name))
 
         c = self.conn.cursor()
         sql = "DELETE FROM pb_entries WHERE name = ? and pbid = ?"
@@ -134,7 +134,7 @@ class PhonebookManager:
     def reverse_lookup(self, number, pb_name):
         pbid = self.pb_exists(pb_name)
         if not pbid:
-            raise commandException("Phonebook '{}' does not exist".format(pb_name))
+            raise CommandException("Phonebook '{}' does not exist".format(pb_name))
 
         c = self.conn.cursor()
         sql = "SELECT name, number FROM pb_entries WHERE pbid = ? and number = ?"
@@ -153,7 +153,7 @@ class PhonebookManager:
 
 def exec_command(args, default_phonebook=None):
     if len(args) == 0:
-        raise argParseException("No command specified.")
+        raise ArgParseException("No command specified.")
 
     # create <phonebook>
     # lookup <name> <phonebook>
@@ -165,7 +165,7 @@ def exec_command(args, default_phonebook=None):
     def check_num_params(cmd, num, params):
         num_params = len(params)
         if num_params != num:
-            raise argParseException("Incorrect number of parameters for '{}', should be {}, but {} were given".format(cmd, num, num_params))
+            raise ArgParseException("Incorrect number of parameters for '{}', should be {}, but {} were given".format(cmd, num, num_params))
 
 
     # with the default_phonebook option, we have to figure out whether or not to use it
@@ -174,7 +174,7 @@ def exec_command(args, default_phonebook=None):
         try:
             check_num_params(cmd, num, params)
             return params
-        except argParseException as e:
+        except ArgParseException as e:
             if default_phonebook is not None:
                 params_w_default = params + [default_phonebook]
                 check_num_params(cmd, num, params_w_default)
@@ -216,7 +216,7 @@ def exec_command(args, default_phonebook=None):
         try:
             params = create_params_list('lookup', 2, args)
         except Exception as e:
-            raise argParseException("Invalid command.")
+            raise ArgParseException("Invalid command.")
 
         pbm.lookup_name(params[0], params[1])
 
@@ -232,7 +232,7 @@ if __name__ == "__main__":
         else:
             exec_command(sys.argv[1:])
 
-    except phonebookException as e:
+    except PhonebookException as e:
         print("Error: " + e.value)
     except Exception as e:
         print(e)
