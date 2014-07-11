@@ -18,6 +18,10 @@ last_index_of: last_index_of.rs build_dir
 	rustc last_index_of.rs --out-dir build
 	./build/last_index_of
 
+add_tree: add_tree.rs build_dir
+	rustc add_tree.rs --out-dir build
+	./build/add_tree
+
 .PHONY: build_dir
 
 build_dir:
