@@ -14,6 +14,10 @@ sum: sum.rs build_dir
 	rustc sum.rs --out-dir build
 	./build/sum
 
+last_index_of: last_index_of.rs build_dir
+	rustc last_index_of.rs --out-dir build
+	./build/last_index_of
+
 .PHONY: build_dir
 
 build_dir:
