@@ -16,12 +16,12 @@ impl<T> Tree<T> {
 }
 
 
-impl<T: Zero + Copy + Add<T, T>> Tree<T> {
+impl<T: Null + Clone + Add<T, T>> Tree<T> {
     fn add(&self) -> T {
         match *self {
-            Nil => Zero::zero(),
-            Node(v, ref ch) => {
-                let mut sum = v;
+            Nil => Null::null(),
+            Node(ref v, ref ch) => {
+                let mut sum = v.clone();
                 for c in ch.iter() {
                     sum = sum + c.add();
                 }
@@ -31,8 +31,42 @@ impl<T: Zero + Copy + Add<T, T>> Tree<T> {
     }
 }
 
+trait Null {
+    fn null() -> Self;
+    fn is_null(&self) -> bool;
+}
+
+// I wanted to do impl<T: Zero> Null for T
+// however I get a "conflicting implementation" error
+// with the Vec<T> implementation, despite the fact that
+// no Vec<T> implements Zero. I was looking at a github issue for this yesterday,
+// so it's a known problem
+impl Null for uint {
+    fn null() -> uint { Zero::zero() }
+
+    fn is_null(&self) -> bool {
+        self.is_zero()
+    }
+}
+
+impl<T: Eq> Null for Vec<T> {
+    fn null() -> Vec<T> {
+        vec!()
+    }
+
+    fn is_null(&self) -> bool {
+        *self == vec!()
+    }
+}
+
 fn main() {
     println!("{}", Nil::<uint>.add());
     let x = Node(1u, box vec!(Tree::leaf(2u), Tree::bintree(8u, Tree::leaf(3u), Tree::leaf(4u))));
     println!("{}", x.add());
+
+    let v1 = vec!('a', 'b');
+    let v2 = vec!('c');
+    let v3 = vec!('d', 'e', 'f');
+    let y: Tree<Vec<char>> = Tree::bintree(v1, Tree::leaf(v3), Tree::leaf(v2));
+    println!("{}", y.add());
 }
