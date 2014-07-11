@@ -10,6 +10,10 @@ max_list: max_list.rs build_dir
 	rustc max_list.rs --out-dir build
 	./build/max_list
 
+sum: sum.rs build_dir
+	rustc sum.rs --out-dir build
+	./build/sum
+
 .PHONY: build_dir
 
 build_dir:
